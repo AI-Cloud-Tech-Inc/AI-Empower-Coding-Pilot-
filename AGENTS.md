@@ -4,19 +4,26 @@ This document describes the multi-agent system used in AI-Empower-Coding-Pilot.
 
 ## Agent Roles
 
-| Agent      | Role        | Description                                        |
-|------------|-------------|----------------------------------------------------|
-| Architect  | `architect` | Analyses requirements and produces system design   |
-| Coder      | `coder`     | Generates production-ready code from architecture  |
-| Tester     | `tester`    | Creates and runs test cases                        |
-| Security   | `security`  | Scans code for vulnerabilities and compliance      |
-| Docs       | `docs`      | Generates project documentation                   |
-| Reviewer   | `reviewer`  | Reviews code for quality and best practices        |
+| Agent         | Role            | Description                                        |
+|---------------|-----------------|---------------------------------------------------|
+| Architect     | `architect`     | Analyses requirements and produces system design   |
+| Coder         | `coder`         | Generates production-ready code from architecture  |
+| Tester        | `tester`        | Creates and runs test cases                        |
+| Security      | `security`      | Scans code for vulnerabilities and compliance      |
+| Docs          | `docs`          | Generates project documentation                   |
+| Reviewer      | `reviewer`      | Reviews code for quality and best practices        |
+| DevOps        | `devops`        | Generates CI/CD, Docker, and deployment configs    |
+| Performance   | `performance`   | Analyses code for performance bottlenecks          |
+| Accessibility | `accessibility` | Checks frontend for WCAG 2.1 compliance           |
 
 ## Pipeline Flow
 
 ```
 Requirements ──> Architect ──> Coder ──> Tester ──> Security ──> Docs ──> Reviewer ──> Done
+                                  │                                          │
+                                  ├──> DevOps (parallel)                     │
+                                  ├──> Performance (parallel)                │
+                                  └──> Accessibility (parallel) ─────────────┘
 ```
 
 ## State Machine
@@ -28,6 +35,9 @@ The pipeline is orchestrated via a LangGraph-inspired state machine:
 - **CODING** — Generate code files
 - **TESTING** — Create and evaluate tests
 - **SECURITY_SCAN** — Run vulnerability analysis
+- **DEVOPS** — Generate deployment configuration
+- **PERFORMANCE** — Analyse performance bottlenecks
+- **ACCESSIBILITY** — Check WCAG compliance
 - **DOCUMENTATION** — Generate docs
 - **REVIEW** — Final quality check
 - **COMPLETED / FAILED** — Terminal states
@@ -35,7 +45,10 @@ The pipeline is orchestrated via a LangGraph-inspired state machine:
 ## Parallel Execution
 
 Agents that do not depend on each other can run concurrently via the
-`ParallelExecutor`. Concurrency is bounded by `MAX_PARALLEL_AGENTS`.
+`ParallelExecutor`. Concurrency is bounded by `MAX_PARALLEL_AGENTS` (default: 6).
+
+The DevOps, Performance, and Accessibility agents run in parallel after
+the Coder agent completes, as they only need the architecture and code files.
 
 ## Extending
 

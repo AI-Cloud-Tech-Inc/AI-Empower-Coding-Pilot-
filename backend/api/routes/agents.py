@@ -5,9 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from backend.agents import (
+    AccessibilityAgent,
     ArchitectAgent,
     CoderAgent,
+    DevOpsAgent,
     DocsAgent,
+    PerformanceAgent,
     ReviewerAgent,
     SecurityAgent,
     TesterAgent,
@@ -23,6 +26,9 @@ _AGENTS = [
     SecurityAgent(),
     DocsAgent(),
     ReviewerAgent(),
+    DevOpsAgent(),
+    PerformanceAgent(),
+    AccessibilityAgent(),
 ]
 
 

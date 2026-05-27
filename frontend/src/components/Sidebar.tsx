@@ -1,3 +1,5 @@
+import type { UserResponse } from '../types';
+
 type Page =
   | 'dashboard'
   | 'projects'
@@ -6,11 +8,14 @@ type Page =
   | 'compliance'
   | 'approvals'
   | 'audit'
-  | 'cost';
+  | 'cost'
+  | 'profile';
 
 interface SidebarProps {
   current: Page;
   onNavigate: (page: Page) => void;
+  user: UserResponse;
+  onLogout: () => void;
 }
 
 const NAV_SECTIONS: { label: string; items: { page: Page; label: string; icon: string }[] }[] = [
@@ -19,7 +24,7 @@ const NAV_SECTIONS: { label: string; items: { page: Page; label: string; icon: s
     items: [
       { page: 'dashboard', label: 'Dashboard', icon: '\u25A0' },
       { page: 'projects', label: 'Projects', icon: '\u25B6' },
-      { page: 'agents', label: 'Agents', icon: '\u2699' },
+      { page: 'agents', label: 'Agents (9)', icon: '\u2699' },
     ],
   },
   {
@@ -39,7 +44,7 @@ const NAV_SECTIONS: { label: string; items: { page: Page; label: string; icon: s
   },
 ];
 
-export default function Sidebar({ current, onNavigate }: SidebarProps) {
+export default function Sidebar({ current, onNavigate, user, onLogout }: SidebarProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="p-5 border-b border-gray-700/50">
@@ -71,10 +76,35 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t border-gray-700/50">
+
+      {/* User section */}
+      <div className="border-t border-gray-700/50 p-4">
+        <button
+          onClick={() => onNavigate('profile')}
+          className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+            current === 'profile' ? 'bg-gray-700/50' : 'hover:bg-gray-800/60'
+          }`}
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {user.username[0].toUpperCase()}
+          </div>
+          <div className="text-left min-w-0">
+            <p className="text-sm text-white truncate">{user.username}</p>
+            <p className="text-[10px] text-gray-500 capitalize">{user.role}</p>
+          </div>
+        </button>
+        <button
+          onClick={onLogout}
+          className="w-full mt-2 text-xs text-gray-500 hover:text-red-400 transition-colors py-1"
+        >
+          Sign Out
+        </button>
+      </div>
+
+      <div className="px-4 pb-3">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs text-gray-500">v2.0.0 — AutoGen</span>
+          <span className="text-xs text-gray-500">v3.0.0 — 9 Agents</span>
         </div>
       </div>
     </div>

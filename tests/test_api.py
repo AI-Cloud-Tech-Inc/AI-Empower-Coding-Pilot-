@@ -42,7 +42,7 @@ async def test_list_agents(client: AsyncClient) -> None:
     res = await client.get("/api/agents")
     assert res.status_code == 200
     agents = res.json()
-    assert len(agents) == 6
+    assert len(agents) == 9
     roles = {a["role"] for a in agents}
     assert "architect" in roles
     assert "coder" in roles
