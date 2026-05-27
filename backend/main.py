@@ -46,7 +46,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# --- Middleware ---
+# --- Middleware (Starlette processes outermost first; last added = outermost) ---
+app.add_middleware(RequestTrackingMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.api_cors_origins,
@@ -54,8 +56,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RequestTrackingMiddleware)
-app.add_middleware(RateLimitMiddleware)
 
 # --- Routes ---
 app.include_router(health.router, prefix="/api")

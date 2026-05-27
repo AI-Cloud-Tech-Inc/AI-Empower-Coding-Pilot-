@@ -64,5 +64,13 @@ async def get_me(user: UserResponse | None = Depends(get_current_user)) -> UserR
 
 
 @router.get("/users", response_model=list[UserResponse])
-async def list_users(db: AsyncSession = Depends(get_db)) -> list[UserResponse]:
+async def list_users(
+    user: UserResponse | None = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[UserResponse]:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
     return await _store.list_users(db)

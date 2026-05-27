@@ -19,11 +19,13 @@ This document describes the multi-agent system used in AI-Empower-Coding-Pilot.
 ## Pipeline Flow
 
 ```
-Requirements ──> Architect ──> Coder ──> Tester ──> Security ──> Docs ──> Reviewer ──> Done
-                                  │                                          │
-                                  ├──> DevOps (parallel)                     │
-                                  ├──> Performance (parallel)                │
-                                  └──> Accessibility (parallel) ─────────────┘
+Requirements ──> Architect ──> Coder ──> Tester ──> Security ──┐
+                                                               │
+                                                     ┌─ DevOps ─────────┐
+                                                     ├─ Performance ────┤ (parallel)
+                                                     └─ Accessibility ──┘
+                                                               │
+                                                          Docs ──> Reviewer ──> Done
 ```
 
 ## State Machine
@@ -46,7 +48,8 @@ Agents that do not depend on each other can run concurrently via the
 `ParallelExecutor`. Concurrency is bounded by `MAX_PARALLEL_AGENTS` (default: 6).
 
 The DevOps, Performance, and Accessibility agents run in parallel after
-the Coder agent completes, as they only need the architecture and code files.
+the Security scan completes (the `PARALLEL_ANALYSIS` state), as they
+only need the architecture, code files, and security context.
 
 ## Extending
 
