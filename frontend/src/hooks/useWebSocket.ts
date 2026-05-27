@@ -47,7 +47,10 @@ export function useWebSocket(channel?: string) {
     connect();
     return () => {
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
     };
   }, [connect]);
 

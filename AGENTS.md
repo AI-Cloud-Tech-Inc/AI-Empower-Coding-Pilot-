@@ -35,9 +35,7 @@ The pipeline is orchestrated via a LangGraph-inspired state machine:
 - **CODING** — Generate code files
 - **TESTING** — Create and evaluate tests
 - **SECURITY_SCAN** — Run vulnerability analysis
-- **DEVOPS** — Generate deployment configuration
-- **PERFORMANCE** — Analyse performance bottlenecks
-- **ACCESSIBILITY** — Check WCAG compliance
+- **PARALLEL_ANALYSIS** — Run DevOps, Performance, and Accessibility agents concurrently
 - **DOCUMENTATION** — Generate docs
 - **REVIEW** — Final quality check
 - **COMPLETED / FAILED** — Terminal states
