@@ -71,7 +71,7 @@ echo "     echo -n '<random>' | gcloud secrets versions add ai-empower-api-secre
 echo ""
 echo "  2. Initialize Terraform:"
 echo "     cd infra/gcp/environments/${ENVIRONMENT}"
-echo "     terraform init"
+echo "     terraform init -backend-config=\"bucket=${TF_STATE_BUCKET}\""
 echo "     terraform plan -var project_id=${PROJECT_ID}"
 echo "     terraform apply -var project_id=${PROJECT_ID}"
 echo ""

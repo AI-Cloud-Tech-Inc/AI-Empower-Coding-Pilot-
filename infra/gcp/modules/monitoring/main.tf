@@ -149,7 +149,7 @@ resource "google_monitoring_uptime_check_config" "backend_health" {
     type = "uptime_url"
     labels = {
       project_id = var.project_id
-      host       = trimprefix(trimprefix(var.backend_service_name, "https://"), "http://")
+      host       = trimprefix(trimprefix(var.backend_url, "https://"), "http://")
     }
   }
 }

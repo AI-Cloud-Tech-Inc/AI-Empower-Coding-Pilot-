@@ -4,7 +4,8 @@
 
 terraform {
   backend "gcs" {
-    bucket = "ai-empower-tf-state"
+    # Bucket name is set via -backend-config during terraform init:
+    #   terraform init -backend-config="bucket=${GCP_PROJECT_ID}-ai-empower-tf-state"
     prefix = "staging"
   }
 }

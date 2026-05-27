@@ -15,6 +15,11 @@ variable "backend_service_name" {
   type = string
 }
 
+variable "backend_url" {
+  description = "Backend Cloud Run service URL (for uptime check)"
+  type        = string
+}
+
 variable "frontend_service_name" {
   type = string
 }

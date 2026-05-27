@@ -206,6 +206,7 @@ module "monitoring" {
   environment           = var.environment
   notification_email    = var.notification_email
   backend_service_name  = module.cloud_run.backend_service_name
+  backend_url           = module.cloud_run.backend_url
   frontend_service_name = module.cloud_run.frontend_service_name
   db_instance_name      = module.cloud_sql.instance_name
   redis_instance_name   = module.redis.instance_name

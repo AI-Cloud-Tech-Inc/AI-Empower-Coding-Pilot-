@@ -40,6 +40,7 @@ resource "google_compute_backend_service" "backend" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   timeout_sec           = 300
   enable_cdn            = false
+  security_policy       = google_compute_security_policy.default.id
 
   backend {
     group = google_compute_region_network_endpoint_group.backend_neg.id
@@ -59,6 +60,7 @@ resource "google_compute_backend_service" "frontend" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
   timeout_sec           = 30
   enable_cdn            = true
+  security_policy       = google_compute_security_policy.default.id
 
   backend {
     group = google_compute_region_network_endpoint_group.frontend_neg.id

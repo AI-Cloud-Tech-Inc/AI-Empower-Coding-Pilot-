@@ -39,11 +39,7 @@ resource "google_cloud_run_v2_service" "backend" {
         startup_cpu_boost = true
       }
 
-      # Database (Cloud SQL via Unix socket)
-      env {
-        name  = "DATABASE_URL"
-        value = "postgresql+asyncpg://ai_empower_app@/${var.db_name}?host=/cloudsql/${var.db_connection_name}"
-      }
+      # Database — password injected via DB_PASSWORD; entrypoint builds DATABASE_URL
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -53,6 +49,21 @@ resource "google_cloud_run_v2_service" "backend" {
           }
         }
       }
+      env {
+        name  = "DB_USER"
+        value = "ai_empower_app"
+      }
+      env {
+        name  = "DB_NAME"
+        value = var.db_name
+      }
+      env {
+        name  = "DB_SOCKET"
+        value = "/cloudsql/${var.db_connection_name}"
+      }
+
+      command = ["/bin/sh", "-c"]
+      args    = ["export DATABASE_URL=\"postgresql+asyncpg://$${DB_USER}:$${DB_PASSWORD}@/$${DB_NAME}?host=$${DB_SOCKET}\" && exec uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2"]
 
       # Redis
       env {
