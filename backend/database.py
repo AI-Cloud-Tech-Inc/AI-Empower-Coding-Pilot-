@@ -26,10 +26,7 @@ class Base(DeclarativeBase):
 
 async def get_db() -> AsyncSession:  # type: ignore[misc]
     async with async_session() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
 
 
 async def init_db() -> None:

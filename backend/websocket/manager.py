@@ -31,9 +31,12 @@ class ConnectionManager:
         self._lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket, channel: str = "default") -> None:
-        if websocket not in self._accepted:
+        async with self._lock:
+            already_accepted = websocket in self._accepted
+        if not already_accepted:
             await websocket.accept()
-            self._accepted.add(websocket)
+            async with self._lock:
+                self._accepted.add(websocket)
         await self.subscribe(websocket, channel)
 
     async def subscribe(self, websocket: WebSocket, channel: str) -> None:

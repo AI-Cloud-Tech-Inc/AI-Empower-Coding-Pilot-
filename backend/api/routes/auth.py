@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.jwt import create_access_token, get_current_user
@@ -22,6 +23,11 @@ async def signup(data: UserCreate, db: AsyncSession = Depends(get_db)) -> TokenR
         user = await _store.create(db, data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already exists",
+        )
 
     token = create_access_token({"sub": user.username, "role": user.role})
     return TokenResponse(

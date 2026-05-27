@@ -35,9 +35,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         hits = self._hits[client_ip]
         self._hits[client_ip] = [t for t in hits if t > cutoff]
-        self._hits[client_ip].append(now)
 
-        if len(self._hits[client_ip]) > self.max_requests:
+        if len(self._hits[client_ip]) >= self.max_requests:
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Rate limit exceeded. Try again later."},
@@ -48,6 +47,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 },
             )
 
+        self._hits[client_ip].append(now)
         response = await call_next(request)
         remaining = max(0, self.max_requests - len(self._hits[client_ip]))
         response.headers["X-RateLimit-Limit"] = str(self.max_requests)

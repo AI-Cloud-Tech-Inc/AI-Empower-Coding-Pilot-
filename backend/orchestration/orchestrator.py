@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from backend.agents.accessibility import AccessibilityAgent
 from backend.agents.architect import ArchitectAgent
 from backend.agents.base import AgentContext
 from backend.agents.coder import CoderAgent
+from backend.agents.devops import DevOpsAgent
 from backend.agents.docs import DocsAgent
+from backend.agents.performance import PerformanceAgent
 from backend.agents.reviewer import ReviewerAgent
 from backend.agents.security import SecurityAgent
 from backend.agents.tester import TesterAgent
@@ -46,6 +49,9 @@ class Orchestrator:
         self.security = SecurityAgent()
         self.docs = DocsAgent()
         self.reviewer = ReviewerAgent()
+        self.devops = DevOpsAgent()
+        self.performance = PerformanceAgent()
+        self.accessibility = AccessibilityAgent()
 
         self.parallel = ParallelExecutor()
         self.audit = AuditLogger()
@@ -66,6 +72,9 @@ class Orchestrator:
                 "security": self.security,
                 "docs": self.docs,
                 "reviewer": self.reviewer,
+                "devops": self.devops,
+                "performance": self.performance,
+                "accessibility": self.accessibility,
             },
             config=GroupChatConfig(
                 max_rounds=10,
@@ -84,6 +93,9 @@ class Orchestrator:
         engine.add_node(PipelineState.CODING, self._node_coding)
         engine.add_node(PipelineState.TESTING, self._node_testing)
         engine.add_node(PipelineState.SECURITY_SCAN, self._node_security)
+        engine.add_node(PipelineState.DEVOPS, self._node_devops)
+        engine.add_node(PipelineState.PERFORMANCE, self._node_performance)
+        engine.add_node(PipelineState.ACCESSIBILITY, self._node_accessibility)
         engine.add_node(PipelineState.DOCUMENTATION, self._node_docs)
         engine.add_node(PipelineState.REVIEW, self._node_review)
 
@@ -91,7 +103,10 @@ class Orchestrator:
         engine.add_edge(PipelineState.ARCHITECTURE, PipelineState.CODING)
         engine.add_edge(PipelineState.CODING, PipelineState.TESTING)
         engine.add_edge(PipelineState.TESTING, PipelineState.SECURITY_SCAN)
-        engine.add_edge(PipelineState.SECURITY_SCAN, PipelineState.DOCUMENTATION)
+        engine.add_edge(PipelineState.SECURITY_SCAN, PipelineState.DEVOPS)
+        engine.add_edge(PipelineState.DEVOPS, PipelineState.PERFORMANCE)
+        engine.add_edge(PipelineState.PERFORMANCE, PipelineState.ACCESSIBILITY)
+        engine.add_edge(PipelineState.ACCESSIBILITY, PipelineState.DOCUMENTATION)
         engine.add_edge(PipelineState.DOCUMENTATION, PipelineState.REVIEW)
 
         engine.add_conditional_edge(PipelineState.REVIEW, self._review_condition)
@@ -237,6 +252,30 @@ class Orchestrator:
         state.data["context"] = ctx.model_dump()
         state.data["security_result"] = result.model_dump()
         self.compliance.check_results(result.output)
+        return state
+
+    async def _node_devops(self, state: WorkflowState) -> WorkflowState:
+        ctx = AgentContext(**state.data["context"])
+        result = await self.devops.run(ctx)
+        state.data["context"] = ctx.model_dump()
+        state.data["devops_result"] = result.model_dump()
+        self.cost.record_tokens(result.tokens_used)
+        return state
+
+    async def _node_performance(self, state: WorkflowState) -> WorkflowState:
+        ctx = AgentContext(**state.data["context"])
+        result = await self.performance.run(ctx)
+        state.data["context"] = ctx.model_dump()
+        state.data["performance_result"] = result.model_dump()
+        self.cost.record_tokens(result.tokens_used)
+        return state
+
+    async def _node_accessibility(self, state: WorkflowState) -> WorkflowState:
+        ctx = AgentContext(**state.data["context"])
+        result = await self.accessibility.run(ctx)
+        state.data["context"] = ctx.model_dump()
+        state.data["accessibility_result"] = result.model_dump()
+        self.cost.record_tokens(result.tokens_used)
         return state
 
     async def _node_docs(self, state: WorkflowState) -> WorkflowState:
