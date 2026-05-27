@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     api_secret_key: str = Field(default="change-me-in-production")
     api_cors_origins: list[str] = Field(default=["http://localhost:5173", "http://localhost:3000"])
 
+    # JWT Auth
+    jwt_secret_key: str = Field(default="change-jwt-secret-in-production")
+    jwt_algorithm: str = Field(default="HS256")
+    jwt_expire_minutes: int = Field(default=60)
+
     # Compliance
     compliance_enabled: bool = Field(default=True)
     hipaa_enabled: bool = Field(default=True)
