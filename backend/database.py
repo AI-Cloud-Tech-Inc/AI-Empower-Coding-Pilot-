@@ -7,11 +7,15 @@ from sqlalchemy.orm import DeclarativeBase
 
 from backend.config import settings
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=False,
-    pool_pre_ping=True,
-)
+_engine_kwargs: dict = {
+    "echo": False,
+    "pool_pre_ping": True,
+}
+if "sqlite" not in settings.database_url:
+    _engine_kwargs["pool_size"] = settings.db_pool_size
+    _engine_kwargs["max_overflow"] = settings.db_max_overflow
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

@@ -229,6 +229,7 @@ class LLMClient:
                 "```\n"
             )
 
+        self._cost_optimizer.record_tokens(len(content.split()), "fallback")
         return LLMResponse(
             content=content,
             model="fallback",

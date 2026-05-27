@@ -51,15 +51,22 @@ class AccessibilityAgent(BaseAgent):
                 )
 
             if "<button" in content_str and "aria-label" not in content_str:
-                if ">" not in content_str.split("<button")[1].split("</button>")[0]:
-                    findings.append(
-                        {
-                            "file": path,
-                            "rule": "WCAG 4.1.2",
-                            "severity": "warning",
-                            "issue": "Button may lack accessible name",
-                        }
-                    )
+                parts = content_str.split("<button")
+                for part in parts[1:]:
+                    if "</button>" in part:
+                        after_tag = part.split(">", 1)
+                        if len(after_tag) > 1:
+                            inner = after_tag[1].split("</button>")[0].strip()
+                            if not inner:
+                                findings.append(
+                                    {
+                                        "file": path,
+                                        "rule": "WCAG 4.1.2",
+                                        "severity": "warning",
+                                        "issue": "Button may lack accessible name",
+                                    }
+                                )
+                                break
 
             if "onClick" in content_str and "<div" in content_str:
                 findings.append(
