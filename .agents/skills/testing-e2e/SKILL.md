@@ -8,7 +8,7 @@ description: End-to-end testing of the AI-Empower-Coding-Pilot application. Use 
 ## Prerequisites
 
 - Python 3.11+ with pip
-- Node.js 18+ with npm
+- Node.js 20+ with npm
 
 ## Devin Secrets Needed
 
