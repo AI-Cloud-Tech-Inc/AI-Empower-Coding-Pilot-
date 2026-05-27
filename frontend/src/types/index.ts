@@ -86,3 +86,32 @@ export interface AutoGenCapabilities {
     providers?: string[];
   }[];
 }
+
+export interface UserResponse {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user: UserResponse;
+}
+
+export interface LLMStatus {
+  provider: string;
+  model: string;
+  api_key_configured: boolean;
+}
+
+export interface LLMGenerateResult {
+  content: string;
+  model: string;
+  tokens_used: number;
+  latency_ms: number;
+  cached: boolean;
+}

@@ -7,7 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import __version__
 from backend.api.middleware import RequestTrackingMiddleware
-from backend.api.routes import agents, approvals, audit, autogen, compliance, cost, health, projects
+from backend.api.routes import (
+    agents,
+    approvals,
+    audit,
+    auth,
+    autogen,
+    compliance,
+    cost,
+    health,
+    llm,
+    projects,
+)
 from backend.config import settings
 
 app = FastAPI(
@@ -41,6 +52,8 @@ app.include_router(audit.router, prefix="/api")
 app.include_router(cost.router, prefix="/api")
 app.include_router(autogen.router, prefix="/api")
 app.include_router(approvals.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(llm.router, prefix="/api")
 
 
 @app.get("/")

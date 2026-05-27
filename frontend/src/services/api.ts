@@ -7,17 +7,27 @@ import type {
   ComplianceReport,
   CostReport,
   HealthStatus,
+  LLMGenerateResult,
+  LLMStatus,
   PipelineResult,
   Project,
+  TokenResponse,
 } from '../types';
 
 const BASE = '/api';
 
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+  const res = await fetch(`${BASE}${path}`, { headers, ...init });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body}`);
@@ -61,5 +71,24 @@ export const generateAll = (architecture: Record<string, unknown>, projectName: 
     method: 'POST',
     body: JSON.stringify({ architecture, project_name: projectName }),
   });
-
 export const getAutoGenCapabilities = () => request<AutoGenCapabilities>('/autogen/capabilities');
+
+// Auth
+export const signup = (data: { username: string; email: string; password: string }) =>
+  request<TokenResponse>('/auth/signup', { method: 'POST', body: JSON.stringify(data) });
+export const login = (data: { username: string; password: string }) =>
+  request<TokenResponse>('/auth/login', { method: 'POST', body: JSON.stringify(data) });
+
+// LLM
+export const getLLMStatus = () => request<LLMStatus>('/llm/status');
+export const generateLLM = (prompt: string, agentRole?: string) =>
+  request<LLMGenerateResult>('/llm/generate', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, agent_role: agentRole ?? '' }),
+  });
+
+// Cost record
+export const recordCostUsage = (tokens: number, model: string) =>
+  request<{ recorded: boolean }>(`/cost/record?tokens=${tokens}&model=${encodeURIComponent(model)}`, {
+    method: 'POST',
+  });
