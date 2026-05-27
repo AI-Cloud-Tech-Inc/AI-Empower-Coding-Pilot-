@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from backend.compliance.gdpr import GDPRChecker
 from backend.compliance.hipaa import HIPAAChecker
 from backend.compliance.pci import PCIChecker
 from backend.compliance.soc2 import SOC2Checker
@@ -19,17 +20,19 @@ class ComplianceResult(BaseModel):
     hipaa: dict[str, Any] = Field(default_factory=dict)
     pci: dict[str, Any] = Field(default_factory=dict)
     soc2: dict[str, Any] = Field(default_factory=dict)
+    gdpr: dict[str, Any] = Field(default_factory=dict)
     overall_compliant: bool = True
     violations: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ComplianceTracker:
-    """Runs HIPAA, PCI-DSS, and SOC 2 checks against security scan results."""
+    """Runs HIPAA, PCI-DSS, SOC 2, and GDPR checks against security scan results."""
 
     def __init__(self) -> None:
         self.hipaa = HIPAAChecker()
         self.pci = PCIChecker()
         self.soc2 = SOC2Checker()
+        self.gdpr = GDPRChecker()
         self._history: list[ComplianceResult] = []
 
     def check_results(self, security_output: dict[str, Any]) -> ComplianceResult:
@@ -39,16 +42,19 @@ class ComplianceTracker:
         hipaa_result = self.hipaa.check(findings)
         pci_result = self.pci.check(findings)
         soc2_result = self.soc2.check(findings)
+        gdpr_result = self.gdpr.check(findings)
 
         violations: list[dict[str, Any]] = []
         violations.extend(hipaa_result.get("violations", []))
         violations.extend(pci_result.get("violations", []))
         violations.extend(soc2_result.get("violations", []))
+        violations.extend(gdpr_result.get("violations", []))
 
         result = ComplianceResult(
             hipaa=hipaa_result,
             pci=pci_result,
             soc2=soc2_result,
+            gdpr=gdpr_result,
             overall_compliant=len(violations) == 0,
             violations=violations,
         )
@@ -69,5 +75,6 @@ class ComplianceTracker:
             "hipaa": latest.hipaa,
             "pci": latest.pci,
             "soc2": latest.soc2,
+            "gdpr": latest.gdpr,
             "checks_run": len(self._history),
         }

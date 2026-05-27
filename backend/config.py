@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     hipaa_enabled: bool = Field(default=True)
     pci_enabled: bool = Field(default=True)
     soc2_enabled: bool = Field(default=True)
+    gdpr_enabled: bool = Field(default=True)
 
     # Audit
     audit_log_level: str = Field(default="INFO")

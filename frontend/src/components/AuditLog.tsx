@@ -8,28 +8,60 @@ export default function AuditLog() {
   if (loading) return <p className="text-gray-500">Loading audit log...</p>;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Audit Log</h2>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-gray-900">Audit Log</h2>
+        <p className="text-gray-500 mt-1">Immutable cryptographic audit trail with SHA-256 hash chain</p>
+      </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-semibold mb-3">Summary</h3>
-        <p className="text-3xl font-bold text-primary-600">{summary?.total_entries ?? 0}</p>
-        <p className="text-sm text-gray-500">Total audit entries</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Entries</p>
+          <p className="text-3xl font-bold text-blue-600 mt-1">{summary?.total_entries ?? 0}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Event Types</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            {summary ? Object.keys(summary.event_counts).length : 0}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Integrity</p>
+          <p className={`text-3xl font-bold mt-1 ${summary?.integrity?.valid !== false ? 'text-green-600' : 'text-red-600'}`}>
+            {summary?.integrity?.valid !== false ? 'Valid' : 'Broken'}
+          </p>
+        </div>
       </div>
 
       {summary && Object.keys(summary.event_counts).length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="font-semibold mb-3">Events by Type</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Type</h3>
+          <div className="space-y-3">
             {Object.entries(summary.event_counts).map(([type, count]) => (
-              <div key={type} className="flex justify-between items-center text-sm">
-                <span className="font-mono text-gray-700">{type}</span>
-                <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600">{count}</span>
+              <div key={type} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                <span className="font-mono text-sm text-gray-700">{type}</span>
+                <span className="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">
+                  {count}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Hash chain info */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6 shadow-lg">
+        <h3 className="text-white font-semibold mb-2">Cryptographic Hash Chain</h3>
+        <p className="text-gray-400 text-sm">
+          Each audit entry is linked to the previous via SHA-256 hash, forming an immutable chain.
+          Any tampering breaks the chain and is detectable via integrity verification.
+        </p>
+        {summary?.integrity && (
+          <p className="text-gray-300 text-sm mt-2">
+            Entries verified: {summary.integrity.entries_checked}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

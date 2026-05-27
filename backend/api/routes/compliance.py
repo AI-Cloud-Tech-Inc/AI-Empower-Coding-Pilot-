@@ -25,5 +25,6 @@ async def list_frameworks() -> dict:
             {"name": "HIPAA", "description": "Health Insurance Portability and Accountability Act"},
             {"name": "PCI-DSS", "description": "Payment Card Industry Data Security Standard"},
             {"name": "SOC2", "description": "Service Organization Control 2"},
+            {"name": "GDPR", "description": "General Data Protection Regulation (EU)"},
         ]
     }

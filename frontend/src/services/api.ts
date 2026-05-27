@@ -1,6 +1,9 @@
 import type {
   Agent,
+  ApprovalReport,
   AuditSummary,
+  AutoGenCapabilities,
+  AutoGenResult,
   ComplianceReport,
   CostReport,
   HealthStatus,
@@ -46,14 +49,17 @@ export const getCompliance = () => request<ComplianceReport>('/compliance');
 // Audit
 export const getAuditSummary = () => request<AuditSummary>('/audit/summary');
 
-// Cost (placeholder — no dedicated backend endpoint yet)
-export const getCostReport = (): Promise<CostReport> =>
-  Promise.resolve({
-    total_tokens: 0,
-    total_cost_usd: 0,
-    budget_usd: 50,
-    budget_remaining_usd: 50,
-    budget_used_pct: 0,
-    is_over_budget: false,
-    recommendations: [],
+// Cost
+export const getCostReport = () => request<CostReport>('/cost');
+
+// Approvals
+export const getApprovals = () => request<ApprovalReport>('/approvals');
+
+// Auto-generation
+export const generateAll = (architecture: Record<string, unknown>, projectName: string) =>
+  request<AutoGenResult>('/autogen/generate', {
+    method: 'POST',
+    body: JSON.stringify({ architecture, project_name: projectName }),
   });
+
+export const getAutoGenCapabilities = () => request<AutoGenCapabilities>('/autogen/capabilities');

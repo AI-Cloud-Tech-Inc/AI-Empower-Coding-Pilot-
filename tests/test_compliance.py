@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.compliance.gdpr import GDPRChecker
 from backend.compliance.hipaa import HIPAAChecker
 from backend.compliance.pci import PCIChecker
 from backend.compliance.soc2 import SOC2Checker
@@ -37,6 +38,21 @@ def test_soc2_clean() -> None:
     checker = SOC2Checker()
     result = checker.check([])
     assert result["compliant"] is True
+
+
+def test_gdpr_clean() -> None:
+    checker = GDPRChecker()
+    result = checker.check([])
+    assert result["compliant"] is True
+    assert result["framework"] == "GDPR"
+
+
+def test_gdpr_violation() -> None:
+    checker = GDPRChecker()
+    result = checker.check([{"type": "INSECURE_HTTP", "recommendation": "fix"}])
+    assert result["compliant"] is False
+    assert len(result["violations"]) == 1
+    assert result["violations"][0]["article"] == "Art. 32 — Security of Processing"
 
 
 def test_compliance_tracker() -> None:

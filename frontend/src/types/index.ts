@@ -29,6 +29,7 @@ export interface ComplianceReport {
   hipaa: Record<string, unknown>;
   pci: Record<string, unknown>;
   soc2: Record<string, unknown>;
+  gdpr: Record<string, unknown>;
 }
 
 export interface CostReport {
@@ -38,16 +39,50 @@ export interface CostReport {
   budget_remaining_usd: number;
   budget_used_pct: number;
   is_over_budget: boolean;
+  alert_triggered: boolean;
+  total_records: number;
   recommendations: string[];
 }
 
 export interface AuditSummary {
   total_entries: number;
   event_counts: Record<string, number>;
+  integrity: {
+    valid: boolean;
+    entries_checked: number;
+  };
 }
 
 export interface HealthStatus {
   status: string;
   version: string;
   services: Record<string, string>;
+}
+
+export interface ApprovalReport {
+  total_requests: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  gates: string[];
+  requests: Record<string, unknown>[];
+}
+
+export interface AutoGenResult {
+  scaffolding: { files: string[]; count: number };
+  cicd: { files: string[]; count: number };
+  docker: { files: string[]; count: number };
+  terraform: { files: string[]; count: number };
+  total_files_generated: number;
+}
+
+export interface AutoGenCapabilities {
+  engines: {
+    name: string;
+    description: string;
+    templates?: string[];
+    platforms?: string[];
+    runtimes?: string[];
+    providers?: string[];
+  }[];
 }

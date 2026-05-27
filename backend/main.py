@@ -7,14 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import __version__
 from backend.api.middleware import RequestTrackingMiddleware
-from backend.api.routes import agents, audit, compliance, health, projects
+from backend.api.routes import agents, approvals, audit, autogen, compliance, cost, health, projects
 from backend.config import settings
 
 app = FastAPI(
     title="AI-Empower-Coding-Pilot",
     description=(
-        "Enterprise-grade autonomous AI coding system with multi-agent orchestration, "
-        "RAG, compliance tracking, audit logging, and cost optimization."
+        "Enterprise-grade autonomous AI coding system with AutoGen multi-agent orchestration, "
+        "auto-scaffolding, CI/CD generation, Terraform IaC, HIPAA/PCI/SOC2/GDPR compliance, "
+        "immutable audit logging, cost tracking, and human approval gates."
     ),
     version=__version__,
     docs_url="/docs",
@@ -37,6 +38,9 @@ app.include_router(projects.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
 app.include_router(compliance.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
+app.include_router(cost.router, prefix="/api")
+app.include_router(autogen.router, prefix="/api")
+app.include_router(approvals.router, prefix="/api")
 
 
 @app.get("/")
@@ -45,4 +49,15 @@ async def root() -> dict:
         "name": "AI-Empower-Coding-Pilot",
         "version": __version__,
         "docs": "/docs",
+        "features": [
+            "AutoGen multi-agent orchestration",
+            "Project scaffolding",
+            "CI/CD pipeline generation",
+            "Docker config generation",
+            "Terraform IaC generation",
+            "HIPAA/PCI/SOC2/GDPR compliance",
+            "Immutable audit logging",
+            "Cost tracking & token budgeting",
+            "Human approval gates",
+        ],
     }
