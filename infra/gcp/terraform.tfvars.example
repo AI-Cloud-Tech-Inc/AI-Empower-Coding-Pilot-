@@ -1,0 +1,29 @@
+# Copy to terraform.tfvars and fill in your values.
+# Do NOT commit terraform.tfvars — it is in .gitignore.
+
+project_id  = "my-gcp-project-id"
+region      = "us-central1"
+environment = "dev"
+
+# Optional: custom domain (leave empty to use Cloud Run default URLs)
+domain     = ""
+enable_ssl = true
+
+# Database
+db_tier = "db-f1-micro"   # dev: db-f1-micro | staging: db-g1-small | prod: db-custom-2-7680
+db_name = "ai_empower_db"
+
+# Redis
+redis_tier      = "BASIC"          # prod: STANDARD_HA
+redis_memory_gb = 1
+
+# Cloud Run (backend)
+backend_image         = "backend:latest"
+frontend_image        = "frontend:latest"
+backend_cpu           = "2"
+backend_memory        = "2Gi"
+backend_min_instances = 0            # prod: 1+
+backend_max_instances = 10
+
+# Monitoring
+notification_email = "team@example.com"
