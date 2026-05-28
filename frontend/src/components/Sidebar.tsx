@@ -1,4 +1,5 @@
 import type { UserResponse } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type Page =
   | 'dashboard'
@@ -45,6 +46,8 @@ const NAV_SECTIONS: { label: string; items: { page: Page; label: string; icon: s
 ];
 
 export default function Sidebar({ current, onNavigate, user, onLogout }: SidebarProps) {
+  const { dark, toggle } = useTheme();
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-5 border-b border-gray-700/50">
@@ -76,6 +79,17 @@ export default function Sidebar({ current, onNavigate, user, onLogout }: Sidebar
           </div>
         ))}
       </nav>
+
+      {/* Dark mode toggle */}
+      <div className="px-4 py-2 border-t border-gray-700/50">
+        <button
+          onClick={toggle}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800/60 transition-colors"
+        >
+          <span>{dark ? 'Dark Mode' : 'Light Mode'}</span>
+          <span className="text-base">{dark ? '\u263E' : '\u2600'}</span>
+        </button>
+      </div>
 
       {/* User section */}
       <div className="border-t border-gray-700/50 p-4">

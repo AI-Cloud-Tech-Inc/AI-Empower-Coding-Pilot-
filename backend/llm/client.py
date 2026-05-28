@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 
 import httpx
 
+from backend.cache import cache_get, cache_set
 from backend.config import settings
 from backend.cost.optimizer import CostOptimizer
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(StrEnum):
@@ -54,12 +59,49 @@ class LLMClient:
         prompt: str,
         system_prompt: str = "You are a helpful AI coding assistant.",
     ) -> LLMResponse:
+        cache_key = f"{self.model}:{system_prompt[:50]}:{prompt[:100]}"
+        cached = await cache_get("llm", cache_key)
+        if cached is not None:
+            return LLMResponse(**cached, cached=True)
+
         provider = self.active_provider
+        response: LLMResponse | None = None
         if provider == LLMProvider.OPENAI:
-            return await self._openai_generate(prompt, system_prompt)
-        if provider == LLMProvider.ANTHROPIC:
-            return await self._anthropic_generate(prompt, system_prompt)
-        return self._fallback_response(prompt)
+            response = await self._with_retry(self._openai_generate, prompt, system_prompt)
+        elif provider == LLMProvider.ANTHROPIC:
+            response = await self._with_retry(self._anthropic_generate, prompt, system_prompt)
+
+        if response is None:
+            return self._fallback_response(prompt)
+
+        await cache_set(
+            "llm",
+            cache_key,
+            {
+                "content": response.content,
+                "model": response.model,
+                "tokens_used": response.tokens_used,
+                "latency_ms": response.latency_ms,
+                "provider": response.provider,
+            },
+        )
+        return response
+
+    async def _with_retry(
+        self,
+        fn: object,
+        prompt: str,
+        system_prompt: str,
+        max_retries: int = 2,
+    ) -> LLMResponse | None:
+        for attempt in range(max_retries + 1):
+            try:
+                return await fn(prompt, system_prompt)  # type: ignore[operator]
+            except (httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException) as exc:
+                logger.warning("LLM attempt %d failed: %s", attempt + 1, exc)
+                if attempt < max_retries:
+                    await asyncio.sleep(1 * (attempt + 1))
+        return None
 
     async def _openai_generate(self, prompt: str, system_prompt: str) -> LLMResponse:
         start = time.monotonic()

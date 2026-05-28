@@ -25,6 +25,8 @@ from backend.orchestration.approval import ApprovalGate
 from backend.orchestration.group_chat import GroupChatConfig, GroupChatOrchestrator
 from backend.orchestration.parallel import ParallelExecutor
 from backend.orchestration.state_machine import PipelineState, WorkflowEngine, WorkflowState
+from backend.websocket.manager import EventType
+from backend.websocket.manager import manager as ws_manager
 
 
 class Orchestrator:
@@ -110,9 +112,21 @@ class Orchestrator:
         engine.set_entry_point(PipelineState.INIT)
         return engine
 
+    async def _broadcast(self, event_type: str, data: dict[str, Any]) -> None:
+        """Emit a WebSocket event to all connected clients."""
+        await ws_manager.broadcast(event_type, data, channel="pipeline")
+        await ws_manager.broadcast(event_type, data, channel="default")
+
     async def run(self, requirements: str) -> dict[str, Any]:
         """Execute the full pipeline for the given requirements."""
         self.audit.log("pipeline_start", {"requirements": requirements[:200]})
+        await self._broadcast(
+            EventType.PIPELINE_PROGRESS,
+            {
+                "state": "init",
+                "message": "Pipeline started",
+            },
+        )
 
         result = await self.engine.run({"requirements": requirements})
 
@@ -125,7 +139,7 @@ class Orchestrator:
             },
         )
 
-        return {
+        output = {
             "workflow_id": result.workflow_id,
             "status": result.current_state.value,
             "data": result.data,
@@ -133,6 +147,15 @@ class Orchestrator:
             "transitions": len(result.history),
             "duration_s": (result.completed_at or 0) - result.started_at,
         }
+        await self._broadcast(
+            EventType.PIPELINE_COMPLETE,
+            {
+                "workflow_id": result.workflow_id,
+                "status": result.current_state.value,
+                "transitions": len(result.history),
+            },
+        )
+        return output
 
     async def run_with_autogen(self, requirements: str) -> dict[str, Any]:
         """Execute via the AutoGen group chat orchestrator."""
@@ -208,9 +231,17 @@ class Orchestrator:
     async def _node_init(self, state: WorkflowState) -> WorkflowState:
         requirements = state.data.get("requirements", "")
         state.data["context"] = AgentContext(requirements=requirements).model_dump()
+        await self._broadcast(
+            EventType.PIPELINE_PROGRESS,
+            {
+                "state": "init",
+                "message": "Requirements parsed",
+            },
+        )
         return state
 
     async def _node_architecture(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "architect", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.architect.run(ctx)
         state.data["context"] = ctx.model_dump()
@@ -222,9 +253,11 @@ class Orchestrator:
 
         if not result.success:
             state.errors.extend(result.errors)
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "architect", "status": "completed"})
         return state
 
     async def _node_coding(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "coder", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.coder.run(ctx)
         state.data["context"] = ctx.model_dump()
@@ -232,26 +265,33 @@ class Orchestrator:
         self.cost.record_tokens(result.tokens_used)
         if not result.success:
             state.errors.extend(result.errors)
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "coder", "status": "completed"})
         return state
 
     async def _node_testing(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "tester", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.tester.run(ctx)
         state.data["context"] = ctx.model_dump()
         state.data["testing_result"] = result.model_dump()
         self.cost.record_tokens(result.tokens_used)
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "tester", "status": "completed"})
         return state
 
     async def _node_security(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "security", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.security.run(ctx)
         state.data["context"] = ctx.model_dump()
         state.data["security_result"] = result.model_dump()
         self.compliance.check_results(result.output)
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "security", "status": "completed"})
         return state
 
     async def _node_parallel_analysis(self, state: WorkflowState) -> WorkflowState:
         """Run DevOps, Performance, and Accessibility agents in parallel."""
+        for role in ("devops", "performance", "accessibility"):
+            await self._broadcast(EventType.AGENT_STATUS, {"agent": role, "status": "running"})
         ctx = AgentContext(**state.data["context"])
         results = await self.parallel.execute(
             [self.devops, self.performance, self.accessibility], ctx
@@ -262,16 +302,21 @@ class Orchestrator:
         ):
             state.data[key] = result.model_dump()
             self.cost.record_tokens(result.tokens_used)
+        for role in ("devops", "performance", "accessibility"):
+            await self._broadcast(EventType.AGENT_STATUS, {"agent": role, "status": "completed"})
         return state
 
     async def _node_docs(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "docs", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.docs.run(ctx)
         state.data["context"] = ctx.model_dump()
         state.data["docs_result"] = result.model_dump()
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "docs", "status": "completed"})
         return state
 
     async def _node_review(self, state: WorkflowState) -> WorkflowState:
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "reviewer", "status": "running"})
         ctx = AgentContext(**state.data["context"])
         result = await self.reviewer.run(ctx)
         state.data["context"] = ctx.model_dump()
@@ -281,7 +326,7 @@ class Orchestrator:
             "pre_deployment",
             data={"review_success": result.success},
         )
-
+        await self._broadcast(EventType.AGENT_STATUS, {"agent": "reviewer", "status": "completed"})
         return state
 
     @staticmethod
