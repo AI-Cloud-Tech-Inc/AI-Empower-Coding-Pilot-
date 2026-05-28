@@ -20,6 +20,9 @@ class AgentRole(StrEnum):
     SECURITY = "security"
     DOCS = "docs"
     REVIEWER = "reviewer"
+    DEVOPS = "devops"
+    PERFORMANCE = "performance"
+    ACCESSIBILITY = "accessibility"
 
 
 class AgentContext(BaseModel):

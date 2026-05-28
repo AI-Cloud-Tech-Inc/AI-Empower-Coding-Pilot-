@@ -7,10 +7,12 @@ from datetime import UTC, datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.models import UserResponse
 from backend.auth.store import UserStore
 from backend.config import settings
+from backend.database import get_db
 
 security = HTTPBearer(auto_error=False)
 
@@ -24,6 +26,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
 ) -> UserResponse | None:
     if credentials is None:
         return None
@@ -44,7 +47,7 @@ async def get_current_user(
         )
 
     store = UserStore()
-    user = store.get_by_username(username)
+    user = await store.get_by_username(db, username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

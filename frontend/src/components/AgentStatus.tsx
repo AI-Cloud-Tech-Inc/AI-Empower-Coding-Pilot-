@@ -9,6 +9,9 @@ const ROLE_CONFIG: Record<string, { color: string; bg: string; desc: string; ico
   security: { color: 'text-red-700', bg: 'bg-red-100', desc: 'SAST scanning & vulnerability detection', icon: '\u{1F6E1}' },
   docs: { color: 'text-amber-700', bg: 'bg-amber-100', desc: 'Auto-documentation generation', icon: '\u{1F4DD}' },
   reviewer: { color: 'text-indigo-700', bg: 'bg-indigo-100', desc: 'Code review & quality checks', icon: '\u{1F50D}' },
+  devops: { color: 'text-cyan-700', bg: 'bg-cyan-100', desc: 'CI/CD, Docker & deployment configs', icon: '\u{1F680}' },
+  performance: { color: 'text-orange-700', bg: 'bg-orange-100', desc: 'Performance analysis & optimization', icon: '\u26A1' },
+  accessibility: { color: 'text-teal-700', bg: 'bg-teal-100', desc: 'WCAG 2.1 accessibility compliance', icon: '\u267F' },
 };
 
 export default function AgentStatus() {
@@ -25,8 +28,8 @@ export default function AgentStatus() {
     <div className="space-y-8 animate-fadeIn">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Agent Status</h2>
-          <p className="text-gray-500 mt-1">6-agent parallel orchestration system — AutoGen group chat</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Agent Status</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">9-agent parallel orchestration system — AutoGen group chat</p>
         </div>
         <button
           onClick={() => setAutoRefresh(!autoRefresh)}
@@ -48,7 +51,7 @@ export default function AgentStatus() {
           return (
             <div
               key={agent.agent_id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -78,12 +81,12 @@ export default function AgentStatus() {
       <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6 shadow-lg">
         <h3 className="text-white font-semibold mb-4">AutoGen Group Chat Orchestration</h3>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {['Architect', 'Coder', 'Tester', 'Security', 'Docs', 'Reviewer'].map((name, i) => (
+          {['Architect', 'Coder', 'Tester', 'Security', 'DevOps || Perf || A11y', 'Docs', 'Reviewer'].map((name, i) => (
             <div key={name} className="flex items-center gap-2 flex-shrink-0">
               <div className="px-3 py-1.5 bg-white/10 rounded-lg text-sm text-gray-200 border border-white/10">
                 {name}
               </div>
-              {i < 5 && (
+              {i < 6 && (
                 <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

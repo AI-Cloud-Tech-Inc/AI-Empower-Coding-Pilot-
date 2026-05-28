@@ -1,14 +1,26 @@
-"""Async LLM client with OpenAI integration and fallback."""
+"""Multi-provider async LLM client with OpenAI, Anthropic, and fallback support."""
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 import httpx
 
+from backend.cache import cache_get, cache_set
 from backend.config import settings
 from backend.cost.optimizer import CostOptimizer
+
+logger = logging.getLogger(__name__)
+
+
+class LLMProvider(StrEnum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    FALLBACK = "fallback"
 
 
 @dataclass
@@ -18,11 +30,12 @@ class LLMResponse:
     tokens_used: int
     latency_ms: float
     cached: bool = False
+    provider: str = "fallback"
 
 
 @dataclass
 class LLMClient:
-    """Async client for OpenAI-compatible LLM APIs."""
+    """Async client supporting OpenAI, Anthropic, and fallback modes."""
 
     model: str = ""
     temperature: float = 0.1
@@ -33,21 +46,70 @@ class LLMClient:
         if not self.model:
             self.model = settings.openai_model
 
+    @property
+    def active_provider(self) -> LLMProvider:
+        if settings.openai_api_key and not settings.openai_api_key.startswith("sk-test"):
+            return LLMProvider.OPENAI
+        if settings.anthropic_api_key:
+            return LLMProvider.ANTHROPIC
+        return LLMProvider.FALLBACK
+
     async def generate(
         self,
         prompt: str,
         system_prompt: str = "You are a helpful AI coding assistant.",
     ) -> LLMResponse:
-        api_key = settings.openai_api_key
-        if not api_key or api_key.startswith("sk-test"):
+        cache_key = f"{self.model}:{system_prompt[:50]}:{prompt[:100]}"
+        cached = await cache_get("llm", cache_key)
+        if cached is not None:
+            return LLMResponse(**cached, cached=True)
+
+        provider = self.active_provider
+        response: LLMResponse | None = None
+        if provider == LLMProvider.OPENAI:
+            response = await self._with_retry(self._openai_generate, prompt, system_prompt)
+        elif provider == LLMProvider.ANTHROPIC:
+            response = await self._with_retry(self._anthropic_generate, prompt, system_prompt)
+
+        if response is None:
             return self._fallback_response(prompt)
 
+        await cache_set(
+            "llm",
+            cache_key,
+            {
+                "content": response.content,
+                "model": response.model,
+                "tokens_used": response.tokens_used,
+                "latency_ms": response.latency_ms,
+                "provider": response.provider,
+            },
+        )
+        return response
+
+    async def _with_retry(
+        self,
+        fn: object,
+        prompt: str,
+        system_prompt: str,
+        max_retries: int = 2,
+    ) -> LLMResponse | None:
+        for attempt in range(max_retries + 1):
+            try:
+                return await fn(prompt, system_prompt)  # type: ignore[operator]
+            except (httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException) as exc:
+                logger.warning("LLM attempt %d failed: %s", attempt + 1, exc)
+                if attempt < max_retries:
+                    await asyncio.sleep(1 * (attempt + 1))
+        return None
+
+    async def _openai_generate(self, prompt: str, system_prompt: str) -> LLMResponse:
         start = time.monotonic()
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {api_key}",
+                    "Authorization": f"Bearer {settings.openai_api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
@@ -67,7 +129,6 @@ class LLMClient:
         usage = data.get("usage", {})
         tokens = usage.get("total_tokens", 0)
         content = data["choices"][0]["message"]["content"]
-
         self._cost_optimizer.record_tokens(tokens, self.model)
 
         return LLMResponse(
@@ -75,6 +136,42 @@ class LLMClient:
             model=self.model,
             tokens_used=tokens,
             latency_ms=latency,
+            provider=LLMProvider.OPENAI,
+        )
+
+    async def _anthropic_generate(self, prompt: str, system_prompt: str) -> LLMResponse:
+        start = time.monotonic()
+        model = settings.anthropic_model
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": settings.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": self.max_tokens,
+                    "system": system_prompt,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        latency = (time.monotonic() - start) * 1000
+        usage = data.get("usage", {})
+        tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+        content = data["content"][0]["text"]
+        self._cost_optimizer.record_tokens(tokens, model)
+
+        return LLMResponse(
+            content=content,
+            model=model,
+            tokens_used=tokens,
+            latency_ms=latency,
+            provider=LLMProvider.ANTHROPIC,
         )
 
     def _fallback_response(self, prompt: str) -> LLMResponse:
@@ -126,6 +223,38 @@ class LLMClient:
                 "- Documentation: Docstrings present\n"
                 "- Test coverage: Adequate\n"
             )
+        elif "devops" in prompt_lower or "deploy" in prompt_lower:
+            content = (
+                "## DevOps Configuration\n\n"
+                "### CI/CD Pipeline\n"
+                "- Build → Test → Lint → Security Scan → Deploy\n"
+                "- Blue-green deployment strategy\n"
+                "- Automated rollback on failure\n\n"
+                "### Infrastructure\n"
+                "- Docker containers with health checks\n"
+                "- Kubernetes orchestration\n"
+                "- Terraform for infrastructure as code\n"
+            )
+        elif "performance" in prompt_lower or "optimize" in prompt_lower:
+            content = (
+                "## Performance Analysis\n\n"
+                "### Optimizations\n"
+                "- Database query optimization with indexes\n"
+                "- Response caching with Redis (TTL: 300s)\n"
+                "- Connection pooling (min: 5, max: 20)\n"
+                "- Gzip compression for API responses\n"
+                "- CDN for static asset delivery\n"
+            )
+        elif "accessibility" in prompt_lower or "a11y" in prompt_lower:
+            content = (
+                "## Accessibility Report\n\n"
+                "### WCAG 2.1 Compliance\n"
+                "- Level A: All criteria met\n"
+                "- Level AA: Colour contrast verified\n"
+                "- Keyboard navigation: All interactive elements focusable\n"
+                "- Screen reader: ARIA labels present\n"
+                "- Focus management: Visible focus indicators\n"
+            )
         else:
             content = (
                 "## Generated Code\n\n"
@@ -138,31 +267,52 @@ class LLMClient:
                 '    description: str = ""\n\n'
                 '@app.post("/items")\n'
                 "async def create_item(item: Item):\n"
-                '    return {"id": "generated", **item.model_dump()}\n'
+                '    return {"id": 1, **item.model_dump()}\n'
                 "```\n"
             )
 
-        self._cost_optimizer.record_tokens(len(prompt.split()), "fallback")
+        self._cost_optimizer.record_tokens(len(content.split()), "fallback")
         return LLMResponse(
             content=content,
             model="fallback",
-            tokens_used=len(prompt.split()),
+            tokens_used=len(content.split()),
             latency_ms=1.0,
             cached=True,
+            provider=LLMProvider.FALLBACK,
         )
 
-    async def generate_for_agent(self, agent_role: str, context: str) -> LLMResponse:
-        """Generate a response tailored to a specific agent role."""
+    async def generate_for_agent(self, agent_role: str, prompt: str) -> LLMResponse:
+        """Generate a response with an agent-specific system prompt."""
         system_prompts = {
-            "architect": "You are an expert software architect. Design scalable systems.",
-            "coder": "You are an expert programmer. Write clean, production-ready code.",
-            "tester": "You are a QA engineer. Create comprehensive test plans and test code.",
-            "security": "You are a security analyst. Identify vulnerabilities and suggest fixes.",
-            "docs": "You are a technical writer. Create clear, comprehensive documentation.",
-            "reviewer": "You are a senior code reviewer. Evaluate code quality and suggest improvements.",
+            "architect": "You are an expert software architect. Analyse requirements and produce system designs.",
+            "coder": "You are a senior software engineer. Write production-ready code.",
+            "tester": "You are a QA engineer. Create comprehensive test plans and test cases.",
+            "security": "You are a security engineer. Analyse code for vulnerabilities.",
+            "docs": "You are a technical writer. Generate clear documentation.",
+            "reviewer": "You are a code reviewer. Evaluate code quality and suggest improvements.",
+            "devops": "You are a DevOps engineer. Configure CI/CD, containers, and infrastructure.",
+            "performance": "You are a performance engineer. Optimise code for speed and efficiency.",
+            "accessibility": "You are an accessibility expert. Ensure WCAG 2.1 compliance.",
         }
-        system = system_prompts.get(agent_role, "You are a helpful AI assistant.")
-        return await self.generate(context, system_prompt=system)
+        system_prompt = system_prompts.get(agent_role, "You are a helpful AI coding assistant.")
+        return await self.generate(prompt, system_prompt=system_prompt)
+
+    def get_status(self) -> dict:
+        provider = self.active_provider
+        return {
+            "provider": provider.value,
+            "model": self.model
+            if provider == LLMProvider.OPENAI
+            else (settings.anthropic_model if provider == LLMProvider.ANTHROPIC else "fallback"),
+            "api_key_configured": provider != LLMProvider.FALLBACK,
+            "providers_available": {
+                "openai": bool(
+                    settings.openai_api_key and not settings.openai_api_key.startswith("sk-test")
+                ),
+                "anthropic": bool(settings.anthropic_api_key),
+                "fallback": True,
+            },
+        }
 
 
 _client: LLMClient | None = None

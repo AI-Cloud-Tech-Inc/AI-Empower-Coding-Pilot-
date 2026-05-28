@@ -105,6 +105,7 @@ class GroupChatOrchestrator:
                 ["architect"],
                 ["coder"],
                 ["tester", "security"],
+                ["devops", "performance", "accessibility"],
                 ["docs", "reviewer"],
             ]
 

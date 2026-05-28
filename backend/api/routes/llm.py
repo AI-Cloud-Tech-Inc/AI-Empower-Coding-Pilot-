@@ -22,6 +22,7 @@ class LLMGenerateResponse(BaseModel):
     tokens_used: int
     latency_ms: float
     cached: bool
+    provider: str = "fallback"
 
 
 @router.post("/generate", response_model=LLMGenerateResponse)
@@ -37,16 +38,11 @@ async def generate(req: LLMGenerateRequest) -> LLMGenerateResponse:
         tokens_used=result.tokens_used,
         latency_ms=result.latency_ms,
         cached=result.cached,
+        provider=result.provider,
     )
 
 
 @router.get("/status")
 async def llm_status() -> dict:
-    from backend.config import settings
-
-    has_key = bool(settings.openai_api_key and not settings.openai_api_key.startswith("sk-test"))
-    return {
-        "provider": "openai" if has_key else "fallback",
-        "model": settings.openai_model,
-        "api_key_configured": has_key,
-    }
+    client = get_llm_client()
+    return client.get_status()

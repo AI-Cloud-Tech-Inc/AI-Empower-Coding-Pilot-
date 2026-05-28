@@ -5,17 +5,28 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-      target: production
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/app.db
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - backend_data:/app/data
-      - backend_logs:/app/logs
+      - DATABASE_URL=postgresql+asyncpg://aiempower:${DB_PASSWORD:-changeme}@postgres:5432/aiempower
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-jwt-secret-in-production}
+      - API_SECRET_KEY=${API_SECRET_KEY:-change-me-in-production}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -23,49 +34,68 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 2G
 
   frontend:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
-      target: production
     ports:
       - "3000:80"
     depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
+      - backend
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: 256M
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 15s
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aiempower
+      POSTGRES_USER: aiempower
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiempower"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
     deploy:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
-  backend_data:
-  backend_logs:
-  redis_data:
+  pgdata:
+  redisdata:

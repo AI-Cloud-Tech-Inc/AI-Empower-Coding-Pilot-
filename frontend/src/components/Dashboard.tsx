@@ -56,8 +56,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-500 mt-1">AI-Empower Autonomous Coding Pilot — Control Center</p>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">AI-Empower Autonomous Coding Pilot — Control Center</p>
       </div>
 
       {/* Status cards */}
@@ -89,8 +89,8 @@ export default function Dashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Agent Task Distribution</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Agent Task Distribution</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={AGENT_DATA}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -110,8 +110,8 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Compliance Status</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Compliance Status</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -135,13 +135,13 @@ export default function Dashboard() {
       </div>
 
       {/* Quick run */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Pipeline Run</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Pipeline Run</h3>
         <textarea
           value={requirements}
           onChange={(e) => setRequirements(e.target.value)}
           placeholder="Enter your project requirements..."
-          className="w-full border border-gray-300 rounded-lg p-4 h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none text-sm"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-4 h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         />
         <button
           onClick={handleRun}
@@ -158,8 +158,8 @@ export default function Dashboard() {
         )}
 
         {result && (
-          <div className="mt-4 p-5 bg-gray-50 rounded-lg border border-gray-200 animate-fadeIn">
-            <h4 className="font-semibold text-gray-900 mb-3">Pipeline Result</h4>
+          <div className="mt-4 p-5 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 animate-fadeIn">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Pipeline Result</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <p className="text-gray-400 text-xs">Status</p>
@@ -169,11 +169,11 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-gray-400 text-xs">Transitions</p>
-                <p className="font-semibold text-gray-900">{result.transitions}</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{result.transitions}</p>
               </div>
               <div>
                 <p className="text-gray-400 text-xs">Duration</p>
-                <p className="font-semibold text-gray-900">{result.duration_s.toFixed(3)}s</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{result.duration_s.toFixed(3)}s</p>
               </div>
               <div>
                 <p className="text-gray-400 text-xs">Workflow</p>
@@ -189,7 +189,7 @@ export default function Dashboard() {
 
 function StatusCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
       <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
     </div>

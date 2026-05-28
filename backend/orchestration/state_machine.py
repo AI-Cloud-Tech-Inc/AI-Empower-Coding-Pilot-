@@ -19,6 +19,7 @@ class PipelineState(StrEnum):
     CODING = "coding"
     TESTING = "testing"
     SECURITY_SCAN = "security_scan"
+    PARALLEL_ANALYSIS = "parallel_analysis"
     DOCUMENTATION = "documentation"
     REVIEW = "review"
     COMPLETED = "completed"

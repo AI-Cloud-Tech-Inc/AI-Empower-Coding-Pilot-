@@ -11,10 +11,16 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
-    # LLM
+    # LLM — OpenAI
     openai_api_key: str = Field(default="", description="OpenAI API key")
-    openai_model: str = Field(default="gpt-4o", description="Default LLM model")
+    openai_model: str = Field(default="gpt-4o", description="Default OpenAI model")
     openai_temperature: float = Field(default=0.1)
+
+    # LLM — Anthropic
+    anthropic_api_key: str = Field(default="", description="Anthropic API key")
+    anthropic_model: str = Field(
+        default="claude-sonnet-4-20250514", description="Default Anthropic model"
+    )
 
     # Database
     database_url: str = Field(
@@ -57,8 +63,16 @@ class Settings(BaseSettings):
     cost_alert_threshold: float = Field(default=0.80)
 
     # Agents
-    max_parallel_agents: int = Field(default=4)
+    max_parallel_agents: int = Field(default=6)
     agent_timeout_seconds: int = Field(default=300)
+
+    # Rate Limiting
+    rate_limit_requests: int = Field(default=100, description="Max requests per window")
+    rate_limit_window_seconds: int = Field(default=60, description="Rate limit window in seconds")
+
+    # Performance
+    db_pool_size: int = Field(default=10)
+    db_max_overflow: int = Field(default=20)
 
 
 settings = Settings()
